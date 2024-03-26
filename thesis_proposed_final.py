@@ -119,7 +119,12 @@ def registration_CA(GID,Ru,user_no,R):
 
 
     #create redundancy
-    redundancy[user_list[user_no]]=extractor(R*G)
+    temp=str(R*group.hash(GID)).encode('UTF-8')
+    padder = padding.PKCS7(128).padder()
+    padded_data = padder.update(temp) + padder.finalize()
+    redundancy[user_list[user_no]]=padded_data
+  
+
 
     if debug==True:
         print("\nRedundancy",redundancy)
@@ -683,12 +688,14 @@ if __name__=="__main__":
             data_record+=str(cell.value)
     
 
-        no_of_attributes,k_t,e_t,d_t=calc(data_record,access_policies[DO][4])
+        no_of_attributes,k_t,e_t,d_t=calc(data_record,access_policies[DO][0])
 
         key_generation_time+=k_t
         encryption_time+=e_t
         decryption_time+=d_t
         total_rows+=1
+        break
+         
 
 
     key_generation_time/=total_rows

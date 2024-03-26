@@ -252,6 +252,11 @@ def decryption(C0,c1,c2,access_policy,possesed_attriubte,SK,shares,G,a,w,msk,DU)
         l1+=1
 
     ##################################
+        
+    print("\nsk",SK)
+    print("\ncx",cx_ar)
+    print("\nc1",c1)
+    print("\nc2",c2)
   
     #sum(C2_x * SK_x_GID)
     idx=0
@@ -373,11 +378,11 @@ debug=False
 DO='Alice'
 DU='Bob'
 
-path_of_attribute_list='/home/anika/Desktop/Data/attribute_list.odt'
-path_of_access_policies='/home/anika/Desktop/Data/access_policies.ods'
-path_of_possessed_attributes='/home/anika/Desktop/Data/possessed_attribute.ods'
-path_of_data='/home/anika/Desktop/Data/diabetes.ods'
-path_of_times = '/home/anika/Desktop/Data/times_list_1.csv'
+path_of_attribute_list='/home/anika/Desktop/Thesis/Data/attribute_list.odt'
+path_of_access_policies='/home/anika/Desktop/Thesis/Data/access_policies.ods'
+path_of_possessed_attributes='/home/anika/Desktop/Thesis/Data/possessed_attribute.ods'
+path_of_data='/home/anika/Desktop/Thesis/Data/diabetes.ods'
+path_of_times = '/home/anika/Desktop/Thesis/Data/times_list_1.csv'
 
 attrs=load_attribute_list(path_of_attribute_list)
 access_policies=load_access_policies(path_of_access_policies)
@@ -401,12 +406,13 @@ if __name__=='__main__':
                 data_record+=str(cell.value)
         
 
-            no_of_attributes,k_t,e_t,d_t=calc(data_record,access_policies[DO][4])
+            no_of_attributes,k_t,e_t,d_t=calc(data_record,access_policies[DO][0])
 
             key_generation_time+=k_t
             encryption_time+=e_t
             decryption_time+=d_t
             total_rows+=1
+            break
 
         key_generation_time/=total_rows
         encryption_time/=total_rows

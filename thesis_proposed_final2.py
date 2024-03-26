@@ -194,6 +194,8 @@ def key_generation_user(Us):
             padding_bit=1
 
         P[user]=(shares,padding_bit)
+        print("\nshares of p",shares)
+        print("\n length of p",temp)
 
     if debug == True:
         print("\nUs",Us)
@@ -379,7 +381,7 @@ def calculate_shares(DU):
     temp,padding_yes=P[DU]
     p=b''
     
-
+    #combine blocks of p
     for idx in range(len(temp)):
         block=temp[idx]
         temp_P=Shamir.combine(block)
@@ -617,7 +619,7 @@ debug=False
 path_of_attribute_list='/home/anika/Desktop/Thesis/Data/attribute_list.odt'
 path_of_access_policies='/home/anika/Desktop/Thesis/Data/access_policies.ods'
 path_of_possessed_attributes='/home/anika/Desktop/Thesis/Data/possessed_attribute.ods'
-path_of_data='/home/anika/Desktop/Thesis/Data/diabetes.ods'
+path_of_data='/home/anika/Desktop/Thesis/Data/hungarian.ods'
 path_of_times = '/home/anika/Desktop/Thesis/Data/times_list_improve_2.csv'
 
 attrs=load_attribute_list(path_of_attribute_list)
@@ -654,7 +656,7 @@ if __name__=="__main__":
         decryption_time+=d_t
         total_rows+=1
         break
-
+    
 
         
     key_generation_time/=total_rows

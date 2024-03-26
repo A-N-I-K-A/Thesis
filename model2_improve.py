@@ -93,12 +93,12 @@ def authority_setup(group,q,G):
 
     return (msk,pk)
 
-def registration_user_phase():
+def registration_user_phase(user_no):
     #each DU selects a number Ku randomly from ZR 
     #and computes Ru=Ku*G
     Ku=group.random(ZR)
     Ru=Ku*G
-    GID='Alice'
+    GID=user_list[user_no]
     #then DU sends its general identity and Ru to the CA
     #to get registered
     return(Ru,GID)
@@ -110,8 +110,6 @@ def registration_CA(GID,Ru):
     Kc=group.random(ZR)
     Pc=Ru+Kc*G
     Pc=extractor(Pc)
-
-
 
     #create signature
     Cp = ec.generate_private_key(ec.SECP384R1(),default_backend())
@@ -125,7 +123,6 @@ def registration_CA(GID,Ru):
 
 
     #CA send the signature to DU
-
     return (Cu,Pc,CP)
 
 def registration_Complete(Cu,CP,Pc):
@@ -183,7 +180,7 @@ def key_generation_user(Us):
     return Us
 
 
-def encrypt_DO(P,access_policy,msk):
+def encrypt_DO(P,access_policy,pk):
 
     t=0
     group.InitBenchmark( )
@@ -264,20 +261,20 @@ def encrypt_DO(P,access_policy,msk):
     #C1,x=ax*G+yi*G
     #C2,x=wx*G+ki*G
 
-    yi=msk[0]
-    ki=msk[1]
+    yi=pk[0]
+    ki=pk[1]
     for x in attr_list:
        temp=[]
        for idx,val in enumerate(a[x]):
            temp.append(a[x][idx]*G)
-       C1[x]=np.sum(temp)+yi*G
+       C1[x]=np.sum(temp)+yi
      
 
     for x in attr_list:
         temp=[]
         for idx,val in enumerate(w[x]):
             temp.append(w[x][idx]*G)
-        C2[x]=np.sum(temp)+ki*G
+        C2[x]=np.sum(temp)+ki
 
    
 
@@ -298,8 +295,8 @@ def encrypt_DO(P,access_policy,msk):
         print("\nC2",C2)
         print("\nC0",C0)
  
-
-    return (C0,C1,C2,c,Q,CH,shares,a,w,C,attr_list,no_of_attributes,t*1000)
+    #C,C0,C1,C2,CH- cipher text CD
+    return (C,C0,C1,C2,CH,Q,shares,a,w,no_of_attributes,t*1000)
 
 def reencrypt_CSP(C):
     t=0
@@ -357,6 +354,7 @@ def calculate_shares(C):
 
     #divide into n shares and set the threshold to m
     #every block of the cipher text for splitting should be of 16 bytes
+
     n=5
     m=2
     shares_of_cipher_temp=[]
@@ -380,14 +378,14 @@ def calculate_shares(C):
 
 
 
-def decryption_DUA(C0,C1,C2,C,Us,c,c1,shares,p,DU,access_policy,a,w,attr_list,msk):
+def decryption_DUA(DU,C,C0,C1,C2,CH,Us,c1,p,shares,access_policy,a,w):
 
     t=0
     group.InitBenchmark( )
     group.StartBenchmark(["RealTime"])
 
 
-    #decrypt the C
+    #decrypt the DUA
     cipher = Cipher(algorithms.AES(key[c1]), modes.CBC(iv),default_backend())
     decryptor = cipher.decryptor()
     C = decryptor.update(C)+decryptor.finalize()
@@ -404,11 +402,11 @@ def decryption_DUA(C0,C1,C2,C,Us,c,c1,shares,p,DU,access_policy,a,w,attr_list,ms
     policy = util.createPolicy(access_policy)
     pruned_list= util.prune(policy,attrs_DU)
 
- 
+
 
     if pruned_list == False:
         ok=False
-        return(-1,-1,-1,-1,-1,-1,-1,ok,-1)
+        return(-1,-1,-1,-1,ok,-1)
 
     coeff = util.getCoefficients(policy)
   
@@ -455,7 +453,6 @@ def decryption_DUA(C0,C1,C2,C,Us,c,c1,shares,p,DU,access_policy,a,w,attr_list,ms
     #Dx=c1,x-Us*G+H_gid*c2,x
     #=ax*G+H_gid*wx*G-p*G
     D={}
-    # print("\nUs",Us)
     Hash_gid=group.hash(DU)
 
     for attr in pruned_list:
@@ -472,6 +469,16 @@ def decryption_DUA(C0,C1,C2,C,Us,c,c1,shares,p,DU,access_policy,a,w,attr_list,ms
 
     ##################################
     #if d=d1 then the user have correct parameters
+    N3=0*G
+    N4=0*G
+    for attr in pruned_list:
+        x=attr.getAttribute()
+        for idx in range(len(cx[x])):
+            N3+=(D[x]*cx[x][idx])
+            N4+=(cx[x][idx]*G)
+            idx+=1
+
+
     if(D1==D):
         #N1=sum for all x(cx*Dx)= cx*ax*G+H_GID*cx*wx-p*g
         temp=0
@@ -511,19 +518,26 @@ def decryption_DUA(C0,C1,C2,C,Us,c,c1,shares,p,DU,access_policy,a,w,attr_list,ms
         temp*=G
 
         N2=temp
+
+        if debug==True:
+            print("\ncx_mul_ax",cx_mul_ax)
+            print("\nN1",N1)
+            print("\nN2",N2)
+            print("\nN3",N3)
+        
     else:
         ok=False
-        return(-1,-1,-1,-1,-1,-1,ok,-1)
+        return(-1,-1,-1,-1,ok,-1)
     
 
     
     group.EndBenchmark()
     t= t + group.GetBenchmark("RealTime") 
 
-    return (D,N1,N2,C,cx,pruned_list,c,ok,t*1000)
+    return (D,N3,N4,C,ok,t*1000)
 
 
-def decryption_DU(N1,N2,C0,C1,C2,p,C,shares_of_cipher,CH,Qd,ok):
+def decryption_DU(N1,N2,C,C0,CH,p,Qd,shares_of_cipher,ok):
     
     t=0
     group.InitBenchmark( )
@@ -547,8 +561,6 @@ def decryption_DU(N1,N2,C0,C1,C2,p,C,shares_of_cipher,CH,Qd,ok):
         #check if the hash value is same
         #Ch=Hash(C)*G*Qd
         Ch_new=group.hash(C)*Qd
-   
-      
 
         if CH!=Ch_new:
             return (False,"",-1)
@@ -560,9 +572,6 @@ def decryption_DU(N1,N2,C0,C1,C2,p,C,shares_of_cipher,CH,Qd,ok):
 
         unpadder = padding.PKCS7(128).unpadder()
         M = unpadder.update(M) + unpadder.finalize()
-
-
-
 
         if debug==True:
             print("\nC0",C0)
@@ -584,32 +593,33 @@ def decryption_DU(N1,N2,C0,C1,C2,p,C,shares_of_cipher,CH,Qd,ok):
 def calc(Message,access_policy):
 
     s=timeit.default_timer()
-    (msk,pk)=authority_setup(group,q,G)
-    (Ru,GID)=registration_user_phase()
-    (Cu,Pc,CP)=registration_CA(GID,Ru)
-    registration_Complete(Cu,CP,Pc)
+    for user_no,user in enumerate(user_list):
+        (msk,pk)=authority_setup(group,q,G)
+        (Ru,GID)=registration_user_phase(user_no)
+        (Cu,Pc,CP)=registration_CA(GID,Ru)
+        registration_Complete(Cu,CP,Pc)
 
     Us=key_generation(msk,pk)
     Us=key_generation_user(Us)
     f=timeit.default_timer()
     key_generation_time=(f-s)*1000
 
-    C0,C1,C2,c,Qd,CH,shares,a,w,C,attr_list,no_of_attributes,t3=encrypt_DO(Message.encode('UTF-8'),access_policy,msk)
+    C,C0,C1,C2,CH,Qd,shares,a,w,no_of_attributes,t3=encrypt_DO(Message.encode('UTF-8'),access_policy,pk)
     C,c1,t4=reencrypt_CSP(C)
     encryption_time=t3+t4
 
-    D,N1,N2,C,cx,pruned_list,c,ok,t5=decryption_DUA(C0,C1,C2,C,Us[DU],c,c1,shares,P[DU],DU,access_policy,a,w,attr_list,msk)
+    D,N1,N2,C,ok,t5=decryption_DUA(DU,C,C0,C1,C2,CH,Us[DU],c1,P[DU],shares,access_policy,a,w)
     shares_of_cipher,t6=calculate_shares(C)
-    ok,M,t7=decryption_DU(N1,N2,C0,C1,C2,P[DU],C,shares_of_cipher,CH,Qd,ok)   
+    ok,M,t7=decryption_DU(N1,N2,C,C0,CH,P[DU],Qd,shares_of_cipher,ok)   
     if ok==True:
-        print("\nMessage",Message)
-        print("\n",M)
+        # print("\nMessage",Message)
+        # print("\n",M)
         decryption_time=t5+t6+t7
         return no_of_attributes,key_generation_time,encryption_time,decryption_time
     
 
 
-global group,q,G,P,a,user_list,key,Hash_gid,debug,Hash_g,attrs,possessed_attribute,no_of_attributes,access_policies
+global group,q,G,P,a,user_list,key,Hash_gid,debug,Hash_g,attrs,possessed_attribute,no_of_attributes,access_policies,redundancy
 #defining an elliptic cruve group
 group=PairingGroup('SS512')
 #define a random prime 
@@ -622,13 +632,14 @@ DO='Alice'
 DU='Bob'
 user_list=['Alice','Bob']
 P={}
-debug=False
+redundancy={}
+debug=True
 
-path_of_attribute_list='/home/anika/Desktop/Data/attribute_list.odt'
-path_of_access_policies='/home/anika/Desktop/Data/access_policies.ods'
-path_of_possessed_attributes='/home/anika/Desktop/Data/possessed_attribute.ods'
-path_of_data='/home/anika/Desktop/Data/diabetes.ods'
-path_of_times = '/home/anika/Desktop/Data/times_list_2.csv'
+path_of_attribute_list='/home/anika/Desktop/Thesis/Data/attribute_list.odt'
+path_of_access_policies='/home/anika/Desktop/Thesis/Data/access_policies.ods'
+path_of_possessed_attributes='/home/anika/Desktop/Thesis/Data/possessed_attribute.ods'
+path_of_data='/home/anika/Desktop/Thesis/Data/diabetes.ods'
+path_of_times = '/home/anika/Desktop/Thesis/Data/times_list_improve_2.csv'
 
 attrs=load_attribute_list(path_of_attribute_list)
 access_policies=load_access_policies(path_of_access_policies)

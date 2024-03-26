@@ -3,16 +3,16 @@ from odf.opendocument import OpenDocumentText
 
 
 # Define the number of hospitals, nurses, and doctors
-num_hospitals = 2 # A to Z
-avg_nurses_per_hospital = 1
-avg_doctors_per_hospital = 2
+num_hospitals =16# A to Z
+avg_nurses_per_hospital = 8
+avg_doctors_per_hospital = 16
 
 # Generate the list
 hospital_list = []
 
 
 # Example usage
-file_path = '/home/anika/Desktop/Data/attribute_list.odt'
+file_path = '/home/anika/Desktop/Thesis/Data/attribute_list.odt'
 
 
 def write_to_odt(file_path, content):

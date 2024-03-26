@@ -563,7 +563,7 @@ P={}
 path_of_attribute_list='/home/anika/Desktop/Thesis/Data/attribute_list.odt'
 path_of_access_policies='/home/anika/Desktop/Thesis/Data/access_policies.ods'
 path_of_possessed_attributes='/home/anika/Desktop/Thesis/Data/possessed_attribute.ods'
-path_of_data='/home/anika/Desktop/Thesis/Data/diabetes.ods'
+path_of_data='/home/anika/Desktop/Thesis/Data/hungarian.ods'
 path_of_times = '/home/anika/Desktop/Thesis/Data/times_list_2.csv'
 
 attrs=load_attribute_list(path_of_attribute_list)
@@ -598,6 +598,8 @@ if __name__=="__main__":
         encryption_time+=e_t
         decryption_time+=d_t
         total_rows+=1
+     
+    
 
     key_generation_time/=total_rows
     encryption_time/=total_rows
